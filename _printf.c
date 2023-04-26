@@ -1,72 +1,51 @@
 #include "main.h"
 
-void print_buffer(char buffer[], int *buff_ind);
-
 /**
- * _printf - This is Printf function
- * @format: format string
- * @...: variable argument list
+ * _printf - formatted output conversion and print data.
+ * @format: input string.
  *
- * Return: number of printed characters
+ * Return: number of chars printed.
  */
 int _printf(const char *format, ...)
 {
-	va_list args;
-	int printed_chars = 0, buff_ind = 0;
-	char buffer[BUFF_SIZE];
+	unsigned int i = 0, len = 0, ibuf = 0;
+	va_list arguments;
+	int (*function)(va_list, char *, unsigned int);
+	char *buffer;
 
-	if (format == NULL)
+	va_start(arguments, format), buffer = malloc(sizeof(char) * 1024);
+	if (!format || !buffer || (format[i] == '%' && !format[i + 1]))
 		return (-1);
-
-	va_start(args, format);
-
-	while (*format)
+	if (!format[i])
+		return (0);
+	for (i = 0; format && format[i]; i++)
 	{
-	if (*format != '%')
-	{
-		buffer[buff_ind++] = *format++;
-		if (buff_ind == BUFF_SIZE)
+		if (format[i] == '%')
 		{
-			print_buffer(buffer, &buff_ind);
+			if (format[i + 1] == '\0')
+			{	print_buf(buffer, ibuf), free(buffer), va_end(arguments);
+				return (-1);
+			}
+			else
+			{	function = get_print_func(format, i + 1);
+				if (function == NULL)
+				{
+					if (format[i + 1] == ' ' && !format[i + 2])
+						return (-1);
+					handl_buf(buffer, format[i], ibuf), len++, i--;
+				}
+				else
+				{
+					len += function(arguments, buffer, ibuf);
+					i += ev_print_func(format, i + 1);
+				}
+			} i++;
 		}
-		printed_chars++;
+		else
+			handl_buf(buffer, format[i], ibuf), len++;
+		for (ibuf = len; ibuf > 1024; ibuf -= 1024)
+			;
 	}
-	else
-	{
-		format++;
-		int flags = get_flags(format, &format);
-		int width = get_width(format, &format, args);
-		int precision = get_precision(format, &format, args);
-		int size = get_size(format, &format);
-		int printed = handle_print(format, &format, args, buffer,
-				flags, width, precision, size);
-		if (printed == -1)
-			return (-1);
-		printed_chars += printed;
-		if (buff_ind)
-		{
-			print_buffer(buffer, &buff_ind);
-		}
-	}
-	}
-	print_buffer(buffer, &buff_ind);
-
-	va_end(args);
-
-	return (printed_chars);
+	print_buf(buffer, ibuf), free(buffer), va_end(arguments);
+	return (len);
 }
-
-/**
- * print_buffer - Prints the contents of the buffer if it exists
- * @buffer: buffer containing characters to be printed
- * @buff_ind: index at which to add next char, represents the length
- */
-void print_buffer(char buffer[], int *buff_ind)
-{
-	if (*buff_ind > 0)
-	{
-		write(1, &buffer[0], *buff_ind);
-	}
-	*buff_ind = 0;
-}
-
